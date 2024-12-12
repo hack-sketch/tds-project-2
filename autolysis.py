@@ -1,13 +1,7 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "pandas",
-#     "seaborn",
-#     "matplotlib",
-#     "requests",
-#     "chardet",
-#     "scikit-learn",
-#     "python-dotenv"
+#     "pandas","seaborn","matplotlib","requests","chardet","scikit-learn","python-dotenv"
 # ]
 # ///
 
