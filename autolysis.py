@@ -294,7 +294,7 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
 
     # Paths for README in both eval and dataset-specific directories
     readme_path_eval = os.path.join(base_dir, "README.md")
-    readme_path_dataset = os.path.join(dataset_dir+".csv", "README.md")
+    readme_path_dataset = os.path.join(dataset_dir, "README.md")
     
     # Find plot files in the dataset-specific directory
     plot_files = [f for f in os.listdir(dataset_dir) if f.endswith('.png')]
@@ -371,7 +371,7 @@ if __name__ == "__main__":
 
                 # Create output directory in the correct location
                 dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
-                output_dir = os.path.join(base_dir, dataset_name)
+                output_dir = os.path.join(base_dir, dataset_name)+".csv"
                 os.makedirs(output_dir, exist_ok=True)
 
                 generate_scatterplot(df, profile, api_key, output_dir)
