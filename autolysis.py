@@ -338,6 +338,10 @@ if __name__ == "__main__":
         if not api_key:
             raise ValueError("AIPROXY_TOKEN environment variable not set.")
 
+        # Set the base directory where files should be saved
+        base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2")
+        os.makedirs(base_dir, exist_ok=True)
+
         # Handle case when no arguments are provided
         if len(sys.argv) < 2:
             print("Usage: python autolysis.py <dataset1.csv> [dataset2.csv ...]")
@@ -356,7 +360,9 @@ if __name__ == "__main__":
                 sample_data = df.sample(n=min(5, len(df))).to_dict(orient='records')
                 profile = profile_dataset(df)
 
-                output_dir = os.path.splitext(dataset_file)[0]
+                # Create output directory in the correct location
+                dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
+                output_dir = os.path.join(base_dir, dataset_name)
                 os.makedirs(output_dir, exist_ok=True)
 
                 generate_scatterplot(df, profile, api_key, output_dir)
