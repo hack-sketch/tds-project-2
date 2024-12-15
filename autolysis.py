@@ -1,11 +1,12 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pandas", "seaborn", "matplotlib", "requests", "chardet", "scikit-learn", "python-dotenv"]
+# dependencies = ["pandas", "seaborn", "matplotlib", "requests", "chardet", "scikit-learn", "python-dotenv", "uv"]
 # ///
 
 
 import os
 import sys
+import glob  
 import pandas as pd
 import chardet
 import json
@@ -18,6 +19,17 @@ from sklearn.impute import SimpleImputer
 import base64
 from dotenv import load_dotenv
 load_dotenv()
+
+def check_filepath():
+    if len(sys.argv) < 2:
+        print("Usage: python autolysis.py <dataset1.csv> [dataset2.csv ...]")
+        # If no arguments, look for CSV files in the current directory
+        csv_files = glob.glob('*.csv')
+        if not csv_files:
+            print("No CSV files found in the current directory.")
+            sys.exit(1)
+        return csv_files
+    return sys.argv[1:]
 
 def load_dataset(file_path):
     """
@@ -272,27 +284,29 @@ def get_plot_narrative(api_key, plot_description, headers_json, sample_data):
         return None
 
 
-def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df):  # Added df parameter
+def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df):
     base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
     dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
-    output_dir = os.path.join(base_dir, dataset_name)
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
-
-    plot_files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
-
+    # Create dataset-specific directory
+    dataset_dir = os.path.join(base_dir, dataset_name)
+    os.makedirs(dataset_dir, exist_ok=True)
+    
+    # Paths for README in both eval and dataset-specific directories
+    readme_path_eval = os.path.join(base_dir, f"{dataset_name}_README.md")
+    readme_path_dataset = os.path.join(dataset_dir, "README.md")
+    
+    plot_files = [f for f in os.listdir(base_dir) if f.endswith('.png') and dataset_name in f]
     if not plot_files:
         print("No plot images found in the directory.")
         return
-
-    readme_path = os.path.join(output_dir, "README.md")
-    readme_content = "# Data Analysis Report\n\n"
-
+    
+    readme_content = f"# Data Analysis Report for {dataset_name}\n\n"
     for plot_file in plot_files:
-        plot_path = os.path.join(output_dir, plot_file)
+        plot_path = os.path.join(base_dir, plot_file)
         print(f"Processing {plot_path}...")
-
+        
+        # Determine plot type and columns
         if 'scatterplot' in plot_file:
             plot_type = 'scatterplot'
             base_name = os.path.splitext(plot_file)[0]
@@ -309,28 +323,25 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
         else:
             plot_type = 'unknown'
             columns = None
-
+        
+        # Generate plot description and narrative
         plot_desc = get_plot_description(df, plot_type, columns)
         story = get_plot_narrative(api_key, plot_desc, headers_json, sample_data)
-
+        
+        # Add plot information to README content
         if story:
             readme_content += f"## {os.path.splitext(plot_file)[0]}\n\n"
-            readme_content += f"![{plot_file}](./{plot_file})\n\n"
+            # Use a relative path for the image in both README files
+            readme_content += f"![{plot_file}](../{plot_file})\n\n"
             readme_content += f"{story}\n\n"
         else:
             print(f"Failed to generate narrative for {plot_file}.")
-
-    with open(readme_path, "w", encoding="utf-8") as readme_file:
-        readme_file.write(readme_content)
-    print(f"README.md created at {readme_path}")
-
-
-def check_filepath():
-    if len(sys.argv) < 2:
-        print("Usage: python autolysis.py <dataset.csv>")
-        sys.exit(1)
-    dataset_file = sys.argv[1]
-    return dataset_file
+    
+    # Write README to both locations
+    for readme_path in [readme_path_eval, readme_path_dataset]:
+        with open(readme_path, "w", encoding="utf-8") as readme_file:
+            readme_file.write(readme_content)
+        print(f"README.md created at {readme_path}")
 
 
 if __name__ == "__main__":
@@ -343,13 +354,11 @@ if __name__ == "__main__":
         base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
         os.makedirs(base_dir, exist_ok=True)
 
-        # Handle case when no arguments are provided
-        if len(sys.argv) < 2:
-            print("Usage: python autolysis.py <dataset1.csv> [dataset2.csv ...]")
-            sys.exit(1)
+        # Use the updated check_filepath function
+        dataset_files = check_filepath()
 
-        # Process all provided CSV files
-        for dataset_file in sys.argv[1:]:
+        # Process all CSV files
+        for dataset_file in dataset_files:
             if not dataset_file.endswith('.csv'):
                 print(f"Skipping {dataset_file} - not a CSV file")
                 continue
