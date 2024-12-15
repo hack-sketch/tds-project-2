@@ -273,10 +273,12 @@ def get_plot_narrative(api_key, plot_description, headers_json, sample_data):
 
 
 def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data):
-    output_dir = os.path.splitext(dataset_file)[0]
+    base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2")
+    dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
+    output_dir = os.path.join(base_dir, dataset_name)
+    
     if not os.path.exists(output_dir):
-        print(f"Directory does not exist: {output_dir}")
-        return
+        os.makedirs(output_dir, exist_ok=True)
 
     plot_files = [f for f in os.listdir(output_dir) if f.endswith('.png')]
 
@@ -286,6 +288,8 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
 
     readme_path = os.path.join(output_dir, "README.md")
     readme_content = "# Data Analysis Report\n\n"
+    
+    # Rest of your function remains the same
 
     for plot_file in plot_files:
         plot_path = os.path.join(output_dir, plot_file)
