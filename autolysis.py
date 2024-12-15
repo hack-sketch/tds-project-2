@@ -294,7 +294,7 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
 
     # Paths for README in both eval and dataset-specific directories
     readme_path_eval = os.path.join(base_dir, "README.md")
-    readme_path_dataset = os.path.join(dataset_dir, "README.md")
+    readme_path_dataset = os.path.join(dataset_dir+".csv", "README.md")
     
     # Find plot files in the dataset-specific directory
     plot_files = [f for f in os.listdir(dataset_dir) if f.endswith('.png')]
