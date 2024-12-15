@@ -74,7 +74,7 @@ def profile_dataset(df):
     return summary
 
 
-def generate_scatterplot(df, profile, api_key, output_dir):
+def generate_scatterplot(df, profile, api_key, output_dirs):
     try:
         response = requests.post(
             "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
@@ -135,14 +135,16 @@ def generate_scatterplot(df, profile, api_key, output_dir):
 
     x_column_safe = x_column.replace(" ", "_")
     y_column_safe = y_column.replace(" ", "_")
-    output_path = os.path.join(output_dir, f'{x_column_safe}_{y_column_safe}_scatterplot.png')
-
-    plt.savefig(output_path, dpi=100, bbox_inches='tight')
+    
+    # Save plot to all output directories
+    for output_dir in output_dirs:
+        output_path = os.path.join(output_dir, f'{x_column_safe}_{y_column_safe}_scatterplot.png')
+        plt.savefig(output_path, dpi=100, bbox_inches='tight')
+        print(f"Scatterplot saved to {output_path}")
     plt.close()
-    print(f"Scatterplot saved to {output_path}")
 
 
-def generate_correlation_heatmap(df, output_dir):
+def generate_correlation_heatmap(df, output_dirs):
     numeric_df = df.select_dtypes(include='number')
     if numeric_df.shape[1] < 2:
         print("Not enough numeric columns for correlation heatmap.")
@@ -153,13 +155,15 @@ def generate_correlation_heatmap(df, output_dir):
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
     plt.title('Correlation Heatmap')
 
-    output_path = os.path.join(output_dir, 'correlation_heatmap.png')
-    plt.savefig(output_path, dpi=100, bbox_inches='tight')
+    # Save plot to all output directories
+    for output_dir in output_dirs:
+        output_path = os.path.join(output_dir, 'correlation_heatmap.png')
+        plt.savefig(output_path, dpi=100, bbox_inches='tight')
+        print(f"Correlation heatmap saved to {output_path}")
     plt.close()
-    print(f"Correlation heatmap saved to {output_path}")
 
 
-def generate_cluster_data(df, profile, api_key, output_dir):
+def generate_cluster_data(df, profile, api_key, output_dirs):
     try:
         response = requests.post(
             "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
@@ -229,10 +233,12 @@ def generate_cluster_data(df, profile, api_key, output_dir):
     plt.ylabel(selected_columns[1])
     plt.legend(title='Cluster')
 
-    output_path = os.path.join(output_dir, 'clustering_plot.png')
-    plt.savefig(output_path, dpi=100, bbox_inches='tight')
+    # Save plot to all output directories
+    for output_dir in output_dirs:
+        output_path = os.path.join(output_dir, 'clustering_plot.png')
+        plt.savefig(output_path, dpi=100, bbox_inches='tight')
+        print(f"Clustering plot saved to {output_path}")
     plt.close()
-    print(f"Clustering plot saved to {output_path}")
 
 
 def get_plot_description(df, plot_type, columns):
@@ -284,29 +290,21 @@ def get_plot_narrative(api_key, plot_description, headers_json, sample_data):
         return None
 
 
-def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df):
-    base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
+def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df, output_dirs):
     dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
     
-    # Create dataset-specific subdirectory
-    dataset_dir = os.path.join(base_dir, dataset_name)+".csv"
-    os.makedirs(dataset_dir, exist_ok=True)
-
-    # Paths for README in both eval and dataset-specific directories
-    readme_path_eval = os.path.join(base_dir, "README.md")
-    readme_path_dataset = os.path.join(dataset_dir, "README.md")
-    
-    # Find plot files in the dataset-specific directory
-    plot_files = [f for f in os.listdir(dataset_dir) if f.endswith('.png')]
+    # Use the plots from the first output directory
+    plot_dir = output_dirs[0]
+    plot_files = [f for f in os.listdir(plot_dir) if f.endswith('.png')]
 
     if not plot_files:
-        print(f"No plot images found in {dataset_dir}.")
+        print(f"No plot images found in {plot_dir}.")
         return
 
     readme_content = f"# Data Analysis Report for {dataset_name}\n\n"
 
     for plot_file in plot_files:
-        plot_path = os.path.join(dataset_dir, plot_file)
+        plot_path = os.path.join(plot_dir, plot_file)
         print(f"Processing {plot_path}...")
 
         if 'scatterplot' in plot_file:
@@ -314,7 +312,7 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
             base_name = os.path.splitext(plot_file)[0]
             parts = base_name.split('_')
             x_col = parts[0]
-            y_col = parts[1]
+            y_col = parts[1] if len(parts) > 1 else ''
             columns = (x_col, y_col)
         elif 'heatmap' in plot_file:
             plot_type = 'heatmap'
@@ -336,8 +334,9 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
         else:
             print(f"Failed to generate narrative for {plot_file}.")
 
-    # Write README to both locations
-    for readme_path in [readme_path_eval, readme_path_dataset]:
+    # Write README to all output directories
+    for output_dir in output_dirs:
+        readme_path = os.path.join(output_dir, "README.md")
         with open(readme_path, "w", encoding="utf-8") as readme_file:
             readme_file.write(readme_content)
         print(f"README.md created at {readme_path}")
@@ -369,16 +368,20 @@ if __name__ == "__main__":
                 sample_data = df.sample(n=min(5, len(df))).to_dict(orient='records')
                 profile = profile_dataset(df)
 
-                # Create output directory in the correct location
+                # Create output directories in both locations
                 dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
-                output_dir = os.path.join(base_dir, dataset_name)+".csv"
-                os.makedirs(output_dir, exist_ok=True)
+                output_dir_base = os.path.join(base_dir, dataset_name) + ".csv"
+                output_dir_current = os.path.join(os.getcwd(), dataset_name)
+                os.makedirs(output_dir_base, exist_ok=True)
+                os.makedirs(output_dir_current, exist_ok=True)
 
-                generate_scatterplot(df, profile, api_key, output_dir)
-                generate_correlation_heatmap(df, output_dir)
-                generate_cluster_data(df, profile, api_key, output_dir)
+                output_dirs = [output_dir_base, output_dir_current]
 
-                process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df)
+                generate_scatterplot(df, profile, api_key, output_dirs)
+                generate_correlation_heatmap(df, output_dirs)
+                generate_cluster_data(df, profile, api_key, output_dirs)
+
+                process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df, output_dirs)
                 print(f"Completed processing {dataset_file}")
             except Exception as e:
                 print(f"Error processing {dataset_file}: {e}")
