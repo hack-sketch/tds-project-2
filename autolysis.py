@@ -334,23 +334,41 @@ def check_filepath():
 
 if __name__ == "__main__":
     try:
-        api_key = os.environ["AIPROXY_TOKEN"]
-    except KeyError:
-        raise ValueError("AIPROXY_TOKEN environment variable not set.")
+        api_key = os.environ.get("AIPROXY_TOKEN")
+        if not api_key:
+            raise ValueError("AIPROXY_TOKEN environment variable not set.")
 
-    dataset_file = check_filepath()
-    df = load_dataset(dataset_file)
+        # Handle case when no arguments are provided
+        if len(sys.argv) < 2:
+            print("Usage: python autolysis.py <dataset1.csv> [dataset2.csv ...]")
+            sys.exit(1)
 
-    headers_json = get_headers_as_json(df)
-    sample_data = df.sample(n=min(5, len(df))).to_dict(orient='records')
+        # Process all provided CSV files
+        for dataset_file in sys.argv[1:]:
+            if not dataset_file.endswith('.csv'):
+                print(f"Skipping {dataset_file} - not a CSV file")
+                continue
+                
+            print(f"\nProcessing {dataset_file}")
+            try:
+                df = load_dataset(dataset_file)
+                headers_json = get_headers_as_json(df)
+                sample_data = df.sample(n=min(5, len(df))).to_dict(orient='records')
+                profile = profile_dataset(df)
 
-    profile = profile_dataset(df)
+                output_dir = os.path.splitext(dataset_file)[0]
+                os.makedirs(output_dir, exist_ok=True)
 
-    output_dir = os.path.splitext(dataset_file)[0]
-    os.makedirs(output_dir, exist_ok=True)
+                generate_scatterplot(df, profile, api_key, output_dir)
+                generate_correlation_heatmap(df, output_dir)
+                generate_cluster_data(df, profile, api_key, output_dir)
 
-    generate_scatterplot(df, profile, api_key, output_dir)
-    generate_correlation_heatmap(df, output_dir)
-    generate_cluster_data(df, profile, api_key, output_dir)
+                process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data)
+                print(f"Completed processing {dataset_file}")
+            except Exception as e:
+                print(f"Error processing {dataset_file}: {e}")
+                continue
 
-    process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
