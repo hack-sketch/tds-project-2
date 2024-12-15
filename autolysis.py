@@ -272,8 +272,8 @@ def get_plot_narrative(api_key, plot_description, headers_json, sample_data):
         return None
 
 
-def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data):
-    base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2")
+def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df):  # Added df parameter
+    base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
     dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
     output_dir = os.path.join(base_dir, dataset_name)
     
@@ -288,8 +288,6 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
 
     readme_path = os.path.join(output_dir, "README.md")
     readme_content = "# Data Analysis Report\n\n"
-    
-    # Rest of your function remains the same
 
     for plot_file in plot_files:
         plot_path = os.path.join(output_dir, plot_file)
@@ -313,7 +311,6 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
             columns = None
 
         plot_desc = get_plot_description(df, plot_type, columns)
-
         story = get_plot_narrative(api_key, plot_desc, headers_json, sample_data)
 
         if story:
@@ -343,7 +340,7 @@ if __name__ == "__main__":
             raise ValueError("AIPROXY_TOKEN environment variable not set.")
 
         # Set the base directory where files should be saved
-        base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2")
+        base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
         os.makedirs(base_dir, exist_ok=True)
 
         # Handle case when no arguments are provided
@@ -373,7 +370,7 @@ if __name__ == "__main__":
                 generate_correlation_heatmap(df, output_dir)
                 generate_cluster_data(df, profile, api_key, output_dir)
 
-                process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data)
+                process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_data, df)
                 print(f"Completed processing {dataset_file}")
             except Exception as e:
                 print(f"Error processing {dataset_file}: {e}")
