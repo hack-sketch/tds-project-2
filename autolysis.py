@@ -288,25 +288,27 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
     base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
     dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
     
-    # Create dataset-specific directory
+    # Create dataset-specific subdirectory
     dataset_dir = os.path.join(base_dir, dataset_name)
     os.makedirs(dataset_dir, exist_ok=True)
-    
+
     # Paths for README in both eval and dataset-specific directories
     readme_path_eval = os.path.join(base_dir, f"{dataset_name}_README.md")
     readme_path_dataset = os.path.join(dataset_dir, "README.md")
     
-    plot_files = [f for f in os.listdir(base_dir) if f.endswith('.png') and dataset_name in f]
+    # Find plot files in the dataset-specific directory
+    plot_files = [f for f in os.listdir(dataset_dir) if f.endswith('.png')]
+
     if not plot_files:
-        print("No plot images found in the directory.")
+        print(f"No plot images found in {dataset_dir}.")
         return
-    
+
     readme_content = f"# Data Analysis Report for {dataset_name}\n\n"
+
     for plot_file in plot_files:
-        plot_path = os.path.join(base_dir, plot_file)
+        plot_path = os.path.join(dataset_dir, plot_file)
         print(f"Processing {plot_path}...")
-        
-        # Determine plot type and columns
+
         if 'scatterplot' in plot_file:
             plot_type = 'scatterplot'
             base_name = os.path.splitext(plot_file)[0]
@@ -323,20 +325,17 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
         else:
             plot_type = 'unknown'
             columns = None
-        
-        # Generate plot description and narrative
+
         plot_desc = get_plot_description(df, plot_type, columns)
         story = get_plot_narrative(api_key, plot_desc, headers_json, sample_data)
-        
-        # Add plot information to README content
+
         if story:
             readme_content += f"## {os.path.splitext(plot_file)[0]}\n\n"
-            # Use a relative path for the image in both README files
-            readme_content += f"![{plot_file}](../{plot_file})\n\n"
+            readme_content += f"![{plot_file}]({plot_file})\n\n"
             readme_content += f"{story}\n\n"
         else:
             print(f"Failed to generate narrative for {plot_file}.")
-    
+
     # Write README to both locations
     for readme_path in [readme_path_eval, readme_path_dataset]:
         with open(readme_path, "w", encoding="utf-8") as readme_file:
@@ -354,11 +353,11 @@ if __name__ == "__main__":
         base_dir = os.path.expanduser("~/.local/share/tds-sep-24-project-2/hack-sketch-tds-project-2/eval")
         os.makedirs(base_dir, exist_ok=True)
 
-        # Use the updated check_filepath function
-        dataset_files = check_filepath()
+        # Handle case when no arguments are provided
+        csv_files = sys.argv[1:] if len(sys.argv) > 1 else glob.glob(os.path.join(base_dir, '*.csv'))
 
-        # Process all CSV files
-        for dataset_file in dataset_files:
+        # Process all provided CSV files
+        for dataset_file in csv_files:
             if not dataset_file.endswith('.csv'):
                 print(f"Skipping {dataset_file} - not a CSV file")
                 continue
