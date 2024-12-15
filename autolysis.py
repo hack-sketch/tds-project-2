@@ -372,7 +372,7 @@ if __name__ == "__main__":
                 # Create output directory in the correct location
                 dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
                 output_dir = os.path.join(base_dir, dataset_name)
-                os.makedirs(output_dir, exist_ok=True)
+                os.makedirs(f"{output_dir}.csv", exist_ok=True)
 
                 generate_scatterplot(df, profile, api_key, output_dir)
                 generate_correlation_heatmap(df, output_dir)
