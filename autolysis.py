@@ -289,7 +289,7 @@ def process_plots_and_create_readme(dataset_file, api_key, headers_json, sample_
     dataset_name = os.path.splitext(os.path.basename(dataset_file))[0]
     
     # Create dataset-specific subdirectory
-    dataset_dir = os.path.join(base_dir, dataset_name)
+    dataset_dir = os.path.join(base_dir, dataset_name)+".csv"
     os.makedirs(dataset_dir, exist_ok=True)
 
     # Paths for README in both eval and dataset-specific directories
